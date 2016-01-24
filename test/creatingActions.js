@@ -70,7 +70,6 @@ describe('Creating actions using promises', function() {
 
         describe('when promising an async action created this way', function() {
             var promise;
-
             beforeEach(function() {
                 // promise resolves on baz.completed
                 promise = Q.promise(function(resolve) {
@@ -95,6 +94,37 @@ describe('Creating actions using promises', function() {
             it('should invoke the completed action with the correct arguments', function() {
                 var testArgs = [1337, 'test'];
                 actions.baz(testArgs[0], testArgs[1]);
+
+                return assert.eventually.deepEqual(promise, testArgs);
+            });
+        });
+
+        describe('when using withPromise on an action', function() {
+            var withPromiseResult;
+            var promise;
+            beforeEach(function() {
+
+                // promise resolves on baz.completed
+                promise = Q.promise(function(resolve) {
+                    actions.anotherFoo.completed.listen(function(){
+                        resolve.apply(null, arguments);
+                    }, {}); // pass empty context
+                });
+
+                // listen for anotherFoo and return a promiseFactory
+                withPromiseResult = actions.anotherFoo.withPromise(function() {
+                    var args = Array.prototype.slice.call(arguments, 0);
+                    var deferred = Q.defer();
+                    setTimeout(function() {
+                        deferred.resolve(args);
+                    }, 0);
+                    return deferred.promise;
+                });
+            });
+
+            it('should return the same action that completes correctly when called', function() {
+                var testArgs = [1337, 'test'];
+                withPromiseResult(testArgs[0], testArgs[1]);
 
                 return assert.eventually.deepEqual(promise, testArgs);
             });

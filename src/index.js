@@ -121,10 +121,24 @@ function createFunctions(Reflux, PromiseFactory) {
 
     }
 
+    /**
+     * Subscribes the given callback for action triggered, which should
+     * return a promise that in turn is passed to `this.promise`
+     *
+     * @param {Function} callback The callback to register as event handler
+     * @param {Mixed} [optional] bindContext The context to bind the callback with
+     * @returns {Action} Subscribed action to facilitate chaining on actions definitions
+     */
+     function withPromise(callback, bindContext) {
+         this.listenAndPromise(callback, bindContext);
+         return this;
+     }
+
     return {
         triggerPromise: triggerPromise,
         promise: promise,
-        listenAndPromise: listenAndPromise
+        listenAndPromise: listenAndPromise,
+        withPromise: withPromise
     };
 }
 
@@ -133,9 +147,10 @@ function createFunctions(Reflux, PromiseFactory) {
  */
 export default function(promiseFactory) {
     return function(Reflux) {
-        const { triggerPromise, promise, listenAndPromise } = createFunctions(Reflux, promiseFactory);
+        const { triggerPromise, promise, listenAndPromise, withPromise } = createFunctions(Reflux, promiseFactory);
         Reflux.PublisherMethods.triggerAsync = triggerPromise;
         Reflux.PublisherMethods.promise = promise;
         Reflux.PublisherMethods.listenAndPromise = listenAndPromise;
+        Reflux.PublisherMethods.withPromise = withPromise;
     };
 }
