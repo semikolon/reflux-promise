@@ -56,7 +56,27 @@ describe('Creating actions using promises', function() {
 
         var actionNames, actions;
 
+        var resolvedPromise = function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            var deferred = Q.defer();
+            setTimeout(function() {
+                deferred.resolve(args);
+            }, 0);
+            return deferred.promise;
+        };
+
+        var rejectedPromise = function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            var deferred = Q.defer();
+            setTimeout(function() {
+                deferred.reject('error');
+            }, 0);
+            return deferred.promise;
+        };
+
         beforeEach(function () {
+
+
             actionNames = [
                 'foo',
                 'bar',
@@ -64,7 +84,18 @@ describe('Creating actions using promises', function() {
                 {
                     anotherFoo: { asyncResult: true },
                     anotherBar: { children: ['wee'] }
-                }];
+                },
+                {
+                    foobar: {
+                        asyncResult: true,
+                        withPromise: rejectedPromise
+                    },
+                    barfoo: {
+                        withPromise: resolvedPromise
+                    }
+                }
+
+            ];
             actions = Reflux.createActions(actionNames);
         });
 
@@ -79,16 +110,7 @@ describe('Creating actions using promises', function() {
                 });
 
                 // listen for baz and return a promise
-                actions.baz.listenAndPromise(function() {
-                    var args = Array.prototype.slice.call(arguments, 0);
-                    var deferred = Q.defer();
-
-                    setTimeout(function() {
-                        deferred.resolve(args);
-                    }, 0);
-
-                    return deferred.promise;
-                });
+                actions.baz.listenAndPromise(resolvedPromise);
             });
 
             it('should invoke the completed action with the correct arguments', function() {
@@ -104,22 +126,15 @@ describe('Creating actions using promises', function() {
             var promise;
             beforeEach(function() {
 
-                // promise resolves on baz.completed
+                // promise resolves on anotherFoo.completed
                 promise = Q.promise(function(resolve) {
                     actions.anotherFoo.completed.listen(function(){
                         resolve.apply(null, arguments);
                     }, {}); // pass empty context
                 });
 
-                // listen for anotherFoo and return a promiseFactory
-                withPromiseResult = actions.anotherFoo.withPromise(function() {
-                    var args = Array.prototype.slice.call(arguments, 0);
-                    var deferred = Q.defer();
-                    setTimeout(function() {
-                        deferred.resolve(args);
-                    }, 0);
-                    return deferred.promise;
-                });
+                //Bind promise and return action
+                withPromiseResult = actions.anotherFoo.withPromise(resolvedPromise);
             });
 
             it('should return the same action that completes correctly when called', function() {
@@ -129,6 +144,39 @@ describe('Creating actions using promises', function() {
                 return assert.eventually.deepEqual(promise, testArgs);
             });
         });
+
+        describe('when creating an action with a withPromise definition', function() {
+            var foobarPromise, barfooPromise;
+            beforeEach(function() {
+                // promise resolves on anotherFoo.completed
+                foobarPromise = Q.promise(function(resolve) {
+                    actions.foobar.failed.listen(function(){
+                        resolve.apply(null, arguments);
+                    }, {}); // pass empty context
+                });
+
+                // promise resolves on anotherFoo.completed
+                barfooPromise = Q.promise(function(resolve) {
+                    actions.barfoo.completed.listen(function(){
+                        resolve.apply(null, arguments);
+                    }, {}); // pass empty context
+                });
+            });
+
+            it('should bind the promises as if the withPromise method had been used', function() {
+                actions.foobar();
+                return assert.eventually.deepEqual(foobarPromise, 'error');
+            });
+
+            it('should bind the promises even if ', function() {
+                var testArgs = [1337];
+                actions.barfoo(testArgs[0]);
+                return assert.eventually.deepEqual(barfooPromise, testArgs);
+            });
+
+
+        });
+
     });
 
 });

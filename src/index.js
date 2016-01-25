@@ -152,5 +152,16 @@ export default function(promiseFactory) {
         Reflux.PublisherMethods.promise = promise;
         Reflux.PublisherMethods.listenAndPromise = listenAndPromise;
         Reflux.PublisherMethods.withPromise = withPromise;
+
+        const createAction = Reflux.createAction;
+        Reflux.createAction = function(definition){
+            if (definition.withPromise) {
+                const promise = definition.withPromise;
+                definition.asyncResult = true;
+                delete definition.withPromise;
+                return createAction(definition).withPromise(promise);
+            }
+            return createAction(definition);
+        };
     };
 }
