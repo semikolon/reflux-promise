@@ -168,7 +168,7 @@ describe('Creating actions using promises', function() {
                 return assert.eventually.deepEqual(foobarPromise, 'error');
             });
 
-            it('should bind the promises even if ', function() {
+            it('should bind the promises even if asyncResult is not defined', function() {
                 var testArgs = [1337];
                 actions.barfoo(testArgs[0]);
                 return assert.eventually.deepEqual(barfooPromise, testArgs);
